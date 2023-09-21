@@ -7,18 +7,19 @@ BASE_URL = "https://fantasy.premierleague.com/api"
 class FPLClient:
     def __init__(self, manager_id: int) -> None:
         self.manager_id = manager_id
-        self.overview_url = f"{BASE_URL}/bootstrap-static/"
-        overview_json = requests.get(self.overview_url).json()
-        self.events = overview_json.get("events", [])
-        self.data = {self.overview_url: overview_json}
+        self.data = {}
 
     def get_urls(self) -> List[str]:
+        overview_url = f"{BASE_URL}/bootstrap-static/"
         manager_summary = f"{BASE_URL}/entry/{self.manager_id}/"
         manager_history = f"{BASE_URL}/entry/{self.manager_id}/history/"
         manager_transfers = f"{BASE_URL}/entry/{self.manager_id}/transfers/"
 
+        overview_json = requests.get(overview_url).json()
+        events = overview_json.get("events", [])
+
         latest_finished_gw = 1
-        for event in self.events:
+        for event in events:
             finished = event["finished"]
             if finished and event["id"] > latest_finished_gw:
                 latest_finished_gw = event["id"]
@@ -41,4 +42,4 @@ class FPLClient:
         for url in self.get_urls():
             response_json = requests.get(url).json()
             self.data[url] = response_json
-        return self.data
+        return list(self.data.keys())
