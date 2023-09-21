@@ -1,5 +1,6 @@
-from typing import List
+from typing import List, Dict, Any
 import requests
+from fpl.schema import ManagerPicks
 
 BASE_URL = "https://fantasy.premierleague.com/api"
 
@@ -7,6 +8,7 @@ BASE_URL = "https://fantasy.premierleague.com/api"
 class FPLClient:
     def __init__(self, manager_id: int) -> None:
         self.manager_id = manager_id
+        self.endpoint_to_schema = Dict[str, Any]
         self.data = {}
 
     def get_urls(self) -> List[str]:
@@ -16,6 +18,7 @@ class FPLClient:
         manager_transfers = f"{BASE_URL}/entry/{self.manager_id}/transfers/"
 
         overview_json = requests.get(overview_url).json()
+        self.data[overview_url] = overview_json
         events = overview_json.get("events", [])
 
         latest_finished_gw = 1
