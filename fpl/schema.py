@@ -1,4 +1,5 @@
-from typing import Union
+from dataclasses import dataclass
+from typing import Union, Dict
 from pydantic import BaseModel
 from typing import List
 
@@ -180,9 +181,74 @@ class PastHistory(BaseModel):
     rank: int
 
 
+@dataclass
+class GameweekBest:
+    gameweek: int
+    value: int
+
+
+@dataclass
+class ManagerHistoryStats:
+    best_previous_season: PastHistory
+    best_gameweek_overall_rank: GameweekBest
+    best_gameweek_rank: GameweekBest
+    best_gameweek_points: GameweekBest
+    most_points_on_bench: GameweekBest
+    most_transfers: GameweekBest
+
+
 class ManagerHistory(BaseModel):
     current: List[CurrentHistory]
     past: List[PastHistory]
+
+    def sort_and_return_best(self, attribute: str, highest_is_best: bool):
+        sorted_by_attribute = sorted(
+            self.current, key=lambda x: getattr(x, attribute), reverse=highest_is_best
+        )
+        best = sorted_by_attribute[0]
+        return GameweekBest(best.event, getattr(best, attribute))
+
+    @property
+    def best_previous_season(self) -> PastHistory:
+        sorted_by_rank = sorted(self.past, key=lambda x: x.rank)
+        return sorted_by_rank[0]
+
+    @property
+    def best_gameweek_overall_rank(self) -> GameweekBest:
+        return self.sort_and_return_best(
+            attribute="overall_rank", highest_is_best=False
+        )
+
+    @property
+    def best_gameweek_rank(self) -> GameweekBest:
+        return self.sort_and_return_best(attribute="rank", highest_is_best=False)
+
+    @property
+    def best_gameweek_points(self) -> GameweekBest:
+        return self.sort_and_return_best(attribute="points", highest_is_best=True)
+
+    @property
+    def most_points_on_bench(self) -> GameweekBest:
+        return self.sort_and_return_best(
+            attribute="points_on_bench", highest_is_best=True
+        )
+
+    @property
+    def most_transfers(self) -> GameweekBest:
+        return self.sort_and_return_best(
+            attribute="event_transfers", highest_is_best=True
+        )
+
+    @property
+    def stats(self) -> ManagerHistoryStats:
+        return ManagerHistoryStats(
+            best_previous_season=self.best_previous_season,
+            best_gameweek_overall_rank=self.best_gameweek_overall_rank,
+            best_gameweek_rank=self.best_gameweek_rank,
+            best_gameweek_points=self.best_gameweek_points,
+            most_points_on_bench=self.most_points_on_bench,
+            most_transfers=self.most_transfers,
+        )
 
 
 # ------------------------- Manager Transfers --------------------------------

@@ -33,7 +33,7 @@ class FplData:
 
 def create_fpl_data(
     manager_id: int,
-) -> Tuple[Overview, Dict[str, FplSchema]]:
+) -> FplData:
     # overview
     overview_url = f"{BASE_URL}/bootstrap-static/"
     overview: Overview = _request(
