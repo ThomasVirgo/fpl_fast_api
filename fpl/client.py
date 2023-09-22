@@ -1,48 +1,80 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Tuple, Union
 import requests
-from fpl.schema import ManagerPicks
+from pydantic import BaseModel, parse_obj_as
+from dataclasses import dataclass
+from fpl.schema import (
+    ManagerPicks,
+    Overview,
+    ManagerHistory,
+    ManagerSummary,
+    Transfer,
+    GameweekPlayerStats,
+)
 
 BASE_URL = "https://fantasy.premierleague.com/api"
 
 
-class FPLClient:
-    def __init__(self, manager_id: int) -> None:
-        self.manager_id = manager_id
-        self.endpoint_to_schema = Dict[str, Any]
-        self.data = {}
+@dataclass
+class FplSchema:
+    schema: BaseModel
+    is_list: bool
 
-    def get_urls(self) -> List[str]:
-        overview_url = f"{BASE_URL}/bootstrap-static/"
-        manager_summary = f"{BASE_URL}/entry/{self.manager_id}/"
-        manager_history = f"{BASE_URL}/entry/{self.manager_id}/history/"
-        manager_transfers = f"{BASE_URL}/entry/{self.manager_id}/transfers/"
 
-        overview_json = requests.get(overview_url).json()
-        self.data[overview_url] = overview_json
-        events = overview_json.get("events", [])
+def get_overview_and_create_endpoint_to_schema(
+    manager_id: int,
+) -> Tuple[Overview, Dict[str, FplSchema]]:
+    # retrieve the overview so can work out latest gameweek
+    overview_url = f"{BASE_URL}/bootstrap-static/"
+    overview_json = requests.get(overview_url).json()
+    overview = Overview.parse_obj(overview_json)
 
-        latest_finished_gw = 1
-        for event in events:
-            finished = event["finished"]
-            if finished and event["id"] > latest_finished_gw:
-                latest_finished_gw = event["id"]
+    # base endpoint to schema
+    endpoint_to_schema = {
+        f"{BASE_URL}/entry/{manager_id}/": FplSchema(
+            schema=ManagerSummary, is_list=False
+        ),
+        f"{BASE_URL}/entry/{manager_id}/history/": FplSchema(
+            schema=ManagerHistory, is_list=False
+        ),
+        f"{BASE_URL}/entry/{manager_id}/transfers/": FplSchema(
+            schema=Transfer, is_list=True
+        ),
+    }
 
-        manager_picks_urls = []
-        gw_info_urls = []
-        for gw in range(1, latest_finished_gw + 1):
-            manager_picks_urls.append(
-                f"{BASE_URL}/entry/{self.manager_id}/event/{gw}/picks/"
-            )
-            gw_info_urls.append(f"{BASE_URL}/event/{gw}/live/")
+    # get latest gameweek
+    latest_finished_gw = 1
+    for event in overview.events:
+        if event.finished and event.id > latest_finished_gw:
+            latest_finished_gw = event.id
 
-        return (
-            manager_picks_urls
-            + gw_info_urls
-            + [manager_summary, manager_history, manager_transfers]
+    # create endpoint urls
+    for gw in range(1, latest_finished_gw + 1):
+        endpoint_to_schema[
+            f"{BASE_URL}/entry/{manager_id}/event/{gw}/picks/"
+        ] = FplSchema(schema=ManagerPicks, is_list=False)
+        endpoint_to_schema[f"{BASE_URL}/event/{gw}/live/"] = FplSchema(
+            schema=GameweekPlayerStats, is_list=False
         )
 
-    def retrieve_data_from_endpoints(self):
-        for url in self.get_urls():
-            response_json = requests.get(url).json()
-            self.data[url] = response_json
-        return list(self.data.keys())
+    return overview, endpoint_to_schema
+
+
+class FPLClient:
+    def __init__(self, endpoint_to_schema: Dict[str, FplSchema]) -> None:
+        self.endpoint_to_schema = endpoint_to_schema
+
+    def _request(
+        self, url: str, schema: FplSchema
+    ) -> Union[BaseModel, List[BaseModel]]:
+        response = requests.get(url)
+        json = response.json()
+        if schema.is_list:
+            return parse_obj_as(List[schema.schema], json)
+        else:
+            return schema.schema.parse_obj(json)
+
+    def retrieve_all_data(self) -> Dict[str, BaseModel]:
+        fpl_data = {}
+        for endpoint, fpl_schema in self.endpoint_to_schema.items():
+            fpl_data[endpoint] = self._request(endpoint, fpl_schema)
+        return fpl_data

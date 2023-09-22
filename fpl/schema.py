@@ -1,8 +1,9 @@
+from typing import Union
 from pydantic import BaseModel
 from typing import List
 
 # ------------------------- Overview --------------------------------
-# https://fantasy.premierleague.com/api/entry/{manager_id}/event/{event_id}/picks/
+# https://fantasy.premierleague.com/api/bootstrap-static/
 
 
 class Event(BaseModel):
@@ -10,12 +11,12 @@ class Event(BaseModel):
     deadline_time: str
     average_entry_score: int
     finished: bool
-    highest_score: int
-    most_selected: int
-    most_transferred_in: int
-    top_element: int
-    most_captained: int
-    most_vice_captained: int
+    highest_score: Union[int, None]
+    most_selected: Union[int, None]
+    most_transferred_in: Union[int, None]
+    top_element: Union[int, None]
+    most_captained: Union[int, None]
+    most_vice_captained: Union[int, None]
 
 
 class Team(BaseModel):
@@ -156,8 +157,43 @@ class ManagerSummary(BaseModel):
 
 
 # ------------------------- Manager History --------------------------------
-# https://fantasy.premierleague.com/api/entry/{manager_id}/
+# https://fantasy.premierleague.com/api/entry/{manager_id}/history/
+
+
+class CurrentHistory(BaseModel):
+    event: int
+    points: int
+    total_points: int
+    rank: int
+    rank_sort: int
+    overall_rank: int
+    bank: int
+    value: int
+    event_transfers: int
+    event_transfers_cost: int
+    points_on_bench: int
+
+
+class PastHistory(BaseModel):
+    season_name: str
+    total_points: int
+    rank: int
 
 
 class ManagerHistory(BaseModel):
-    ...
+    current: List[CurrentHistory]
+    past: List[PastHistory]
+
+
+# ------------------------- Manager Transfers --------------------------------
+# https://fantasy.premierleague.com/api/entry/{manager_id}/transfers/
+
+
+class Transfer(BaseModel):
+    element_in: int
+    element_in_cost: int
+    element_out: int
+    element_out_cost: int
+    entry: int
+    event: int
+    time: str
