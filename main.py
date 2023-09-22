@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from fpl.client import FPLClient, get_overview_and_create_endpoint_to_schema
+from fpl.client import create_fpl_data
 
 app = FastAPI()
 
@@ -12,10 +12,4 @@ async def root():
 
 @app.get("/fpl/{manager_id}")
 def fpl(manager_id: int):
-    overview, endpoint_to_schema = get_overview_and_create_endpoint_to_schema(
-        manager_id
-    )
-    fpl_client = FPLClient(endpoint_to_schema)
-    fpl_data = fpl_client.retrieve_all_data()
-    fpl_data["overview"] = overview
-    return fpl_data
+    return create_fpl_data(manager_id)

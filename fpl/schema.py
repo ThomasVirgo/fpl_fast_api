@@ -133,13 +133,13 @@ class Stats(BaseModel):
     in_dreamteam: bool
 
 
-class GameweekPlayerStats(BaseModel):
+class PlayerStats(BaseModel):
     id: int
     stats: Stats
 
 
 class GameweekPlayerStats(BaseModel):
-    elements: List[GameweekPlayerStats]
+    elements: List[PlayerStats]
 
 
 # ------------------------- Manager Summary --------------------------------
