@@ -1,13 +1,21 @@
 from dataclasses import dataclass
-from typing import Union, Dict
+from typing import Union, Dict, Optional
+from functools import cached_property
 from pydantic import BaseModel
 from typing import List
+
+
+class BaseModelCached(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
+        keep_untouched = (cached_property,)
+
 
 # ------------------------- Overview --------------------------------
 # https://fantasy.premierleague.com/api/bootstrap-static/
 
 
-class Event(BaseModel):
+class Event(BaseModelCached):
     id: int
     deadline_time: str
     average_entry_score: int
@@ -20,7 +28,7 @@ class Event(BaseModel):
     most_vice_captained: Union[int, None]
 
 
-class Team(BaseModel):
+class Team(BaseModelCached):
     id: int
     draw: int
     loss: int
@@ -38,7 +46,7 @@ class Team(BaseModel):
     strength_defence_away: int
 
 
-class Player(BaseModel):
+class Player(BaseModelCached):
     id: int
     element_type: int
     first_name: str
@@ -66,17 +74,24 @@ class Player(BaseModel):
     starts: int
 
 
-class Overview(BaseModel):
+class Overview(BaseModelCached):
     events: List[Event]
     teams: List[Team]
     elements: List[Player]
+
+    @cached_property
+    def player_id_to_name(self) -> Dict[int, str]:
+        return {
+            player.id: f"{player.first_name} {player.second_name}"
+            for player in self.elements
+        }
 
 
 # ------------------------- MANAGER PICKS --------------------------------
 # https://fantasy.premierleague.com/api/entry/{manager_id}/event/{event_id}/picks/
 
 
-class EntryHistory(BaseModel):
+class EntryHistory(BaseModelCached):
     event: int
     points: int
     total_points: int
@@ -90,7 +105,7 @@ class EntryHistory(BaseModel):
     points_on_bench: int
 
 
-class Pick(BaseModel):
+class Pick(BaseModelCached):
     element: int
     position: int
     multiplier: int
@@ -98,16 +113,46 @@ class Pick(BaseModel):
     is_vice_captain: bool
 
 
-class ManagerPicks(BaseModel):
+@dataclass(frozen=True)
+class PickExtended:
+    element: int
+    position: int
+    multiplier: int
+    is_captain: bool
+    is_vice_captain: bool
+    points: int
+    name: str
+
+
+class ManagerPicks(BaseModelCached):
     entry_history: EntryHistory
     picks: List[Pick]
+
+    @cached_property
+    def captain_id(self) -> Optional[int]:
+        for pick in self.picks:
+            if pick.is_captain:
+                return pick.element
+        return None
+
+    def picks_extended(
+        self, player_id_to_points: Dict[int, int], player_id_to_name: Dict[int, str]
+    ) -> List[PickExtended]:
+        return [
+            PickExtended(
+                **dict(pick),
+                points=player_id_to_points[pick.element],
+                name=player_id_to_name[pick.element],
+            )
+            for pick in self.picks
+        ]
 
 
 # ------------------------- Element Info per Gameweek --------------------------------
 # https://fantasy.premierleague.com/api/event/{event_id}/live/
 
 
-class Stats(BaseModel):
+class Stats(BaseModelCached):
     minutes: int
     goals_scored: int
     assists: int
@@ -134,20 +179,24 @@ class Stats(BaseModel):
     in_dreamteam: bool
 
 
-class PlayerStats(BaseModel):
+class PlayerStats(BaseModelCached):
     id: int
     stats: Stats
 
 
-class GameweekPlayerStats(BaseModel):
+class GameweekPlayerStats(BaseModelCached):
     elements: List[PlayerStats]
+
+    @cached_property
+    def player_id_to_points(self) -> Dict[int, int]:
+        return {player.id: player.stats.total_points for player in self.elements}
 
 
 # ------------------------- Manager Summary --------------------------------
 # https://fantasy.premierleague.com/api/entry/{manager_id}/
 
 
-class ManagerSummary(BaseModel):
+class ManagerSummary(BaseModelCached):
     id: int
     player_first_name: str
     player_last_name: str
@@ -161,7 +210,7 @@ class ManagerSummary(BaseModel):
 # https://fantasy.premierleague.com/api/entry/{manager_id}/history/
 
 
-class CurrentHistory(BaseModel):
+class CurrentHistory(BaseModelCached):
     event: int
     points: int
     total_points: int
@@ -175,7 +224,7 @@ class CurrentHistory(BaseModel):
     points_on_bench: int
 
 
-class PastHistory(BaseModel):
+class PastHistory(BaseModelCached):
     season_name: str
     total_points: int
     rank: int
@@ -195,9 +244,10 @@ class ManagerHistoryStats:
     best_gameweek_points: GameweekBest
     most_points_on_bench: GameweekBest
     most_transfers: GameweekBest
+    gameweek_to_overall_rank: Dict[int, int]
 
 
-class ManagerHistory(BaseModel):
+class ManagerHistory(BaseModelCached):
     current: List[CurrentHistory]
     past: List[PastHistory]
 
@@ -208,38 +258,42 @@ class ManagerHistory(BaseModel):
         best = sorted_by_attribute[0]
         return GameweekBest(best.event, getattr(best, attribute))
 
-    @property
+    @cached_property
     def best_previous_season(self) -> PastHistory:
         sorted_by_rank = sorted(self.past, key=lambda x: x.rank)
         return sorted_by_rank[0]
 
-    @property
+    @cached_property
     def best_gameweek_overall_rank(self) -> GameweekBest:
         return self.sort_and_return_best(
             attribute="overall_rank", highest_is_best=False
         )
 
-    @property
+    @cached_property
     def best_gameweek_rank(self) -> GameweekBest:
         return self.sort_and_return_best(attribute="rank", highest_is_best=False)
 
-    @property
+    @cached_property
     def best_gameweek_points(self) -> GameweekBest:
         return self.sort_and_return_best(attribute="points", highest_is_best=True)
 
-    @property
+    @cached_property
     def most_points_on_bench(self) -> GameweekBest:
         return self.sort_and_return_best(
             attribute="points_on_bench", highest_is_best=True
         )
 
-    @property
+    @cached_property
     def most_transfers(self) -> GameweekBest:
         return self.sort_and_return_best(
             attribute="event_transfers", highest_is_best=True
         )
 
-    @property
+    @cached_property
+    def gameweek_to_overall_rank(self) -> Dict[int, int]:
+        return {history.event: history.overall_rank for history in self.current}
+
+    @cached_property
     def stats(self) -> ManagerHistoryStats:
         return ManagerHistoryStats(
             best_previous_season=self.best_previous_season,
@@ -248,6 +302,7 @@ class ManagerHistory(BaseModel):
             best_gameweek_points=self.best_gameweek_points,
             most_points_on_bench=self.most_points_on_bench,
             most_transfers=self.most_transfers,
+            gameweek_to_overall_rank=self.gameweek_to_overall_rank,
         )
 
 
@@ -255,7 +310,7 @@ class ManagerHistory(BaseModel):
 # https://fantasy.premierleague.com/api/entry/{manager_id}/transfers/
 
 
-class Transfer(BaseModel):
+class Transfer(BaseModelCached):
     element_in: int
     element_in_cost: int
     element_out: int

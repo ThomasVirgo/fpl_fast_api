@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from fpl.data_loading import create_fpl_data
+from fpl.logic import FplWrapped
 
 app = FastAPI()
 
@@ -24,4 +25,5 @@ async def root():
 @app.get("/fpl/{manager_id}")
 def fpl(manager_id: int):
     fpl_data = create_fpl_data(manager_id)
-    return fpl_data.manager_history.stats
+    fpl_wrapped = FplWrapped(fpl_data)
+    return fpl_wrapped.captaincy()
