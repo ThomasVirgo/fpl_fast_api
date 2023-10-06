@@ -267,7 +267,7 @@ class ManagerHistory(BaseModel):
         return GameweekBest(best.event, getattr(best, attribute))
 
     @property
-    def best_previous_season(self) -> PastHistory | None:
+    def best_previous_season(self) -> Optional[PastHistory]:
         sorted_by_rank = sorted(self.past, key=lambda x: x.rank)
         if sorted_by_rank:
             return sorted_by_rank[0]
