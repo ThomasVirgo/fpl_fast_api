@@ -8,6 +8,14 @@ from typing import List
 # https://fantasy.premierleague.com/api/bootstrap-static/
 
 
+ELEMENT_TYPE_TO_POSITION = {
+    1: "Goalkeeper",
+    2: "Defender",
+    3: "Midfielder",
+    4: "Forward",
+}
+
+
 class Event(BaseModel):
     id: int
     deadline_time: str
@@ -238,11 +246,18 @@ class ManagerHistoryStats:
     most_points_on_bench: GameweekBest
     most_transfers: GameweekBest
     gameweek_to_overall_rank: Dict[int, int]
+    chips_played: List[str]
+
+
+class Chip(BaseModel):
+    name: str
+    event: int
 
 
 class ManagerHistory(BaseModel):
     current: List[CurrentHistory]
     past: List[PastHistory]
+    chips: List[Chip]
 
     def sort_and_return_best(self, attribute: str, highest_is_best: bool):
         sorted_by_attribute = sorted(
@@ -252,9 +267,12 @@ class ManagerHistory(BaseModel):
         return GameweekBest(best.event, getattr(best, attribute))
 
     @property
-    def best_previous_season(self) -> PastHistory:
+    def best_previous_season(self) -> PastHistory | None:
         sorted_by_rank = sorted(self.past, key=lambda x: x.rank)
-        return sorted_by_rank[0]
+        if sorted_by_rank:
+            return sorted_by_rank[0]
+        else:
+            return None
 
     @property
     def best_gameweek_overall_rank(self) -> GameweekBest:
@@ -287,6 +305,10 @@ class ManagerHistory(BaseModel):
         return {history.event: history.overall_rank for history in self.current}
 
     @property
+    def chips_played(self) -> List[str]:
+        return [x.name for x in self.chips]
+
+    @property
     def stats(self) -> ManagerHistoryStats:
         return ManagerHistoryStats(
             best_previous_season=self.best_previous_season,
@@ -296,6 +318,7 @@ class ManagerHistory(BaseModel):
             most_points_on_bench=self.most_points_on_bench,
             most_transfers=self.most_transfers,
             gameweek_to_overall_rank=self.gameweek_to_overall_rank,
+            chips_played=self.chips_played,
         )
 
 
@@ -311,3 +334,34 @@ class Transfer(BaseModel):
     entry: int
     event: int
     time: str
+
+
+# ------------------------- League H2H --------------------------------
+# https://fantasy.premierleague.com/api/leagues-h2h/850397/standings/?page_new_entries=1&page_standings=1
+
+
+class H2HManager(BaseModel):
+    id: int
+    division: int
+    entry: Optional[int]
+    player_name: str
+    rank: int
+    last_rank: int
+    rank_sort: int
+    total: int
+    entry_name: str
+    matches_played: int
+    matches_won: int
+    matches_drawn: int
+    matches_lost: int
+    points_for: int
+
+
+class Standings(BaseModel):
+    has_next: bool
+    page: int
+    results: List[H2HManager]
+
+
+class LeagueH2H(BaseModel):
+    standings: Standings

@@ -1,12 +1,15 @@
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Union
 import requests
 from pydantic import BaseModel, parse_obj_as
 from dataclasses import dataclass
 from fpl.schema import (
+    LeagueH2H,
+    ManagerHistoryStats,
     ManagerPicks,
     Overview,
     ManagerHistory,
     ManagerSummary,
+    Standings,
     Transfer,
     GameweekPlayerStats,
 )
@@ -88,10 +91,43 @@ def create_fpl_data(
     )
 
 
+@dataclass
+class H2HData:
+    standings: Standings
+    manager_id_to_stats: Dict[int, ManagerHistoryStats]
+
+
+def create_h2h_data(league_id: int) -> H2HData:
+    h2h_url = f"{BASE_URL}/leagues-h2h/{league_id}/standings/?page_new_entries=1&page_standings=1"
+    h2h_standings: LeagueH2H = _request(
+        h2h_url, FplSchema(schema=LeagueH2H, is_list=False)
+    )
+    manager_id_to_stats = {}
+    for manager_id in (x.entry for x in h2h_standings.standings.results):
+        if manager_id is None:
+            continue
+        try:
+            manager_history_url = f"{BASE_URL}/entry/{manager_id}/history/"
+            manager_history: ManagerHistory = _request(
+                manager_history_url, FplSchema(schema=ManagerHistory, is_list=False)
+            )
+            manager_id_to_stats[manager_id] = manager_history.stats
+        except:
+            continue
+    return H2HData(
+        standings=h2h_standings.standings, manager_id_to_stats=manager_id_to_stats
+    )
+
+
 def _request(url: str, fpl_schema: FplSchema) -> Union[BaseModel, List[BaseModel]]:
     response = requests.get(url)
-    json = response.json()
-    if fpl_schema.is_list:
-        return parse_obj_as(List[fpl_schema.schema], json)
+    response = requests.get(url)
+    response.raise_for_status()
+    if response.status_code != 204:
+        json = response.json()
+        if fpl_schema.is_list:
+            return parse_obj_as(List[fpl_schema.schema], json)
+        else:
+            return fpl_schema.schema.parse_obj(json)
     else:
-        return fpl_schema.schema.parse_obj(json)
+        raise requests.HTTPError("empty response")
