@@ -236,10 +236,13 @@ class GameweekBest:
     gameweek: int
     value: int
 
+    def __str__(self) -> str:
+        return f"{self.value} (GW {self.gameweek})"
+
 
 @dataclass
 class ManagerHistoryStats:
-    best_previous_season: PastHistory
+    best_previous_season: Optional[PastHistory]
     best_gameweek_overall_rank: GameweekBest
     best_gameweek_rank: GameweekBest
     best_gameweek_points: GameweekBest

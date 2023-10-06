@@ -94,7 +94,7 @@ def create_fpl_data(
 @dataclass
 class H2HData:
     standings: Standings
-    manager_id_to_stats: Dict[int, ManagerHistoryStats]
+    manager_id_to_stats: Dict[str, ManagerHistoryStats]
 
 
 def create_h2h_data(league_id: int) -> H2HData:
@@ -103,7 +103,7 @@ def create_h2h_data(league_id: int) -> H2HData:
         h2h_url, FplSchema(schema=LeagueH2H, is_list=False)
     )
     manager_id_to_stats = {}
-    for manager_id in (x.entry for x in h2h_standings.standings.results):
+    for manager_id in [x.entry for x in h2h_standings.standings.results]:
         if manager_id is None:
             continue
         try:
