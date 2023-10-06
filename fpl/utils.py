@@ -19,7 +19,7 @@ class H2HRow:
 
 
 def extract_h2h_rows(h2h_data: H2HData) -> List[H2HRow]:
-    rows = []
+    rows: List[H2HRow] = []
     for manager_data in h2h_data.standings.results:
         manager_id = manager_data.entry
         if manager_id is None:
@@ -56,4 +56,8 @@ def extract_h2h_rows(h2h_data: H2HData) -> List[H2HRow]:
                 most_transfers=most_transfers,
             )
         )
-    return rows
+    sorted_by_points = sorted(rows, key=lambda x: x.points, reverse=True)
+    for i, row in enumerate(sorted_by_points):
+        row.expected_rank = i + 1
+
+    return sorted(sorted_by_points, key=lambda x: x.h2h_rank)
