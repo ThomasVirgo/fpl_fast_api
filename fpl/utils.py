@@ -16,6 +16,7 @@ class H2HRow:
     best_previous_season: str
     most_points_on_bench: str
     most_transfers: str
+    h2h_points: int
 
 
 def extract_h2h_rows(h2h_data: H2HData) -> List[H2HRow]:
@@ -54,6 +55,7 @@ def extract_h2h_rows(h2h_data: H2HData) -> List[H2HRow]:
                 best_previous_season=best_previous_season_str,
                 most_points_on_bench=most_points_on_bench,
                 most_transfers=most_transfers,
+                h2h_points=manager_data.total,
             )
         )
     sorted_by_points = sorted(rows, key=lambda x: x.points, reverse=True)
