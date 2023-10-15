@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}FPL Wrapped{% endblock %}
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="alert alert-success" role="alert">
+        You picked the correct captain {{ correct_captaincy }} times this season, congratulations.
+    </div>
+    <div class="alert alert-danger" role="alert">
+        You picked the incorrect captain {{ incorrect_captaincy }} times this season and lost a total of {{ points_lost
+        }}
+        points,
+        unlucky.
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered table-hover table-sm">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Gameweek</th>
+                    <th>Captained</th>
+                    <th>Should Have Captained</th>
+                    <th>Captain Points</th>
+                    <th>Highest Scorer Points</th>
+                    <th>Points Lost</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.gameweek }}</td>
+                    <td>{{ row.captain_name }}</td>
+                    <td>{{ row.highest_scorer_name }}</td>
+                    <td>{{ row.captain_points }}</td>
+                    <td>{{ row.highest_scorer_points_if_captain }}</td>
+                    {% if row.highest_scorer_points_if_captain - row.captain_points == 0 %}
+                    <td class="text-success">{{ row.highest_scorer_points_if_captain - row.captain_points }}</td>
+                    {% else %}
+                    <td class="text-danger">{{ row.highest_scorer_points_if_captain - row.captain_points }}</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

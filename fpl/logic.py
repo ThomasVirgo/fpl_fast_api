@@ -79,16 +79,15 @@ class FplWrapped:
             if captain_name is None:
                 continue
 
-            if max_points > captain_points:
-                captaincy_scores.append(
-                    CaptaincyScore(
-                        gameweek=gw,
-                        captain_name=captain_name,
-                        captain_points=captain_points * captain_multipler,
-                        highest_scorer_name=max_points_name,
-                        highest_scorer_points_if_captain=max_points * captain_multipler,
-                    )
+            captaincy_scores.append(
+                CaptaincyScore(
+                    gameweek=gw,
+                    captain_name=captain_name,
+                    captain_points=captain_points * captain_multipler,
+                    highest_scorer_name=max_points_name,
+                    highest_scorer_points_if_captain=max_points * captain_multipler,
                 )
+            )
         return captaincy_scores
 
     def bench(self) -> List[BenchScore]:

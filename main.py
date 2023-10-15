@@ -22,10 +22,29 @@ async def root(request: Request):
 
 
 @app.get("/manager/{manager_id}")
-def manager(manager_id: int):
+def manager(request: Request, manager_id: int):
     fpl_data = create_fpl_data(manager_id)
     fpl_wrapped = FplWrapped(fpl_data)
-    return fpl_wrapped.captaincy()
+    rows = fpl_wrapped.captaincy()
+    correct_captaincy = 0
+    incorrect_captaincy = 0
+    points_lost = 0
+    for row in rows:
+        if row.captain_name == row.highest_scorer_name:
+            correct_captaincy += 1
+        else:
+            incorrect_captaincy += 1
+            points_lost += row.highest_scorer_points_if_captain - row.captain_points
+    return templates.TemplateResponse(
+        "fpl_wrapped.html",
+        context={
+            "request": request,
+            "rows": rows,
+            "points_lost": points_lost,
+            "correct_captaincy": correct_captaincy,
+            "incorrect_captaincy": incorrect_captaincy,
+        },
+    )
 
 
 @app.post("/")
