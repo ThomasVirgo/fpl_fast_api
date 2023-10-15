@@ -2,7 +2,6 @@ from dataclasses import asdict
 
 from fastapi import FastAPI, Request, Form
 
-# from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 
 from fpl.data_loading import create_fpl_data, create_h2h_data
@@ -15,15 +14,6 @@ app = FastAPI()
 
 
 templates = Jinja2Templates(directory="templates")
-
-# origins = ["*"]
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=origins,
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
 
 
 @app.get("/")
