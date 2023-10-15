@@ -1,45 +1,111 @@
 {% extends "base.html" %}
 {% block title %}FPL Wrapped{% endblock %}
 {% block content %}
-<div class="container-fluid mt-3">
-    <div class="alert alert-success" role="alert">
-        You picked the correct captain {{ correct_captaincy }} times this season, congratulations.
+<div id="accordion">
+    <div class="card" id="captaincy-card">
+        <div class="card-header" id="headingOne">
+            <h5 class="mb-0">
+                <button class="btn btn-link" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true"
+                    aria-controls="collapseOne">
+                    Captaincy
+                </button>
+            </h5>
+        </div>
+
+        <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
+            <div class="card-body">
+                <div class="container-fluid mt-3" id="captaincy">
+                    <div class="alert alert-success" role="alert">
+                        You picked the correct captain {{ correct_captaincy }} times this season, congratulations.
+                    </div>
+                    <div class="alert alert-danger" role="alert">
+                        You picked the incorrect captain {{ incorrect_captaincy }} times this season and lost a total of
+                        {{ points_lost
+                        }}
+                        points,
+                        unlucky.
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered table-hover table-sm">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Gameweek</th>
+                                    <th>Captained</th>
+                                    <th>Should Have Captained</th>
+                                    <th>Captain Points</th>
+                                    <th>Highest Scorer Points</th>
+                                    <th>Points Lost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in rows %}
+                                <tr>
+                                    <td>{{ row.gameweek }}</td>
+                                    <td>{{ row.captain_name }}</td>
+                                    <td>{{ row.highest_scorer_name }}</td>
+                                    <td>{{ row.captain_points }}</td>
+                                    <td>{{ row.highest_scorer_points_if_captain }}</td>
+                                    {% if row.highest_scorer_points_if_captain - row.captain_points == 0 %}
+                                    <td class="text-success">{{ row.highest_scorer_points_if_captain -
+                                        row.captain_points }}</td>
+                                    {% else %}
+                                    <td class="text-danger">{{ row.highest_scorer_points_if_captain - row.captain_points
+                                        }}</td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="alert alert-danger" role="alert">
-        You picked the incorrect captain {{ incorrect_captaincy }} times this season and lost a total of {{ points_lost
-        }}
-        points,
-        unlucky.
+    <div class="card" id="rank-card">
+        <div class="card-header" id="headingOne">
+            <h5 class="mb-0">
+                <button class="btn btn-link" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true"
+                    aria-controls="collapseTwo">
+                    Rank by Gameweek
+                </button>
+            </h5>
+        </div>
+
+        <div id="collapseTwo" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
+            <div class="card-body">
+                <div>
+                    <canvas id="myChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="table-responsive">
-        <table class="table table-striped table-bordered table-hover table-sm">
-            <thead class="thead-dark">
-                <tr>
-                    <th>Gameweek</th>
-                    <th>Captained</th>
-                    <th>Should Have Captained</th>
-                    <th>Captain Points</th>
-                    <th>Highest Scorer Points</th>
-                    <th>Points Lost</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in rows %}
-                <tr>
-                    <td>{{ row.gameweek }}</td>
-                    <td>{{ row.captain_name }}</td>
-                    <td>{{ row.highest_scorer_name }}</td>
-                    <td>{{ row.captain_points }}</td>
-                    <td>{{ row.highest_scorer_points_if_captain }}</td>
-                    {% if row.highest_scorer_points_if_captain - row.captain_points == 0 %}
-                    <td class="text-success">{{ row.highest_scorer_points_if_captain - row.captain_points }}</td>
-                    {% else %}
-                    <td class="text-danger">{{ row.highest_scorer_points_if_captain - row.captain_points }}</td>
-                    {% endif %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+
 </div>
+
+<script>
+    const ctx = document.getElementById('myChart');
+    const labels = {{ gameweeks | safe }};
+    const data = {
+        labels: labels,
+        datasets: [{
+            label: 'Overall Rank vs Gameweek',
+            data: {{ ranks | safe }},
+    fill: false,
+        borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+        }]
+    };
+    const config = {
+        type: 'line',
+        data: data,
+        options: {
+            scales: {
+                x: { title: { display: true, text: "Gameweek" } },
+                y: { title: { display: true, text: "Rank" } },
+            }
+        }
+    };
+
+    new Chart(ctx, config);
+</script>
 {% endblock %}

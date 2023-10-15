@@ -35,6 +35,12 @@ def manager(request: Request, manager_id: int):
         else:
             incorrect_captaincy += 1
             points_lost += row.highest_scorer_points_if_captain - row.captain_points
+    gameweek_to_rank = fpl_wrapped.fpl_data.manager_history.gameweek_to_overall_rank
+    gameweeks = []
+    ranks = []
+    for gw, rank in gameweek_to_rank.items():
+        gameweeks.append(gw)
+        ranks.append(rank)
     return templates.TemplateResponse(
         "fpl_wrapped.html",
         context={
@@ -43,6 +49,8 @@ def manager(request: Request, manager_id: int):
             "points_lost": points_lost,
             "correct_captaincy": correct_captaincy,
             "incorrect_captaincy": incorrect_captaincy,
+            "gameweeks": gameweeks,
+            "ranks": ranks,
         },
     )
 
