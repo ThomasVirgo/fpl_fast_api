@@ -84,7 +84,6 @@ def h2h(request: Request, league_id: int):
     else:
         rows = [H2HRow(**row) for row in latest_stats_for_league["stats"]]
 
-    print(f"needs reload: {needs_reload}")
     return templates.TemplateResponse(
         "h2h.html", context={"request": request, "rows": rows}
     )

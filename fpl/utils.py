@@ -69,6 +69,4 @@ def extract_h2h_rows(h2h_data: H2HData) -> List[H2HRow]:
 
 def requires_reload(overview: Overview, created_at_str: str) -> bool:
     created_at = datetime.datetime.fromisoformat(created_at_str).replace(tzinfo=None)
-    print(f"created at: {created_at}")
-    print(f"gameweek deadline: {overview.latest_gameweek_deadline}")
     return created_at < overview.latest_gameweek_deadline
