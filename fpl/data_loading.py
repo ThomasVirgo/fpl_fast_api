@@ -119,6 +119,14 @@ def create_h2h_data(league_id: int) -> H2HData:
     )
 
 
+def get_overview() -> Overview:
+    overview_url = f"{BASE_URL}/bootstrap-static/"
+    overview: Overview = _request(
+        overview_url, FplSchema(schema=Overview, is_list=False)
+    )
+    return overview
+
+
 def _request(url: str, fpl_schema: FplSchema) -> Union[BaseModel, List[BaseModel]]:
     response = requests.get(url)
     response = requests.get(url)

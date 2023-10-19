@@ -1,7 +1,9 @@
+import datetime
 from dataclasses import dataclass
 from typing import List
 
 from fpl.data_loading import H2HData
+from fpl.schema import Overview
 
 
 @dataclass
@@ -63,3 +65,10 @@ def extract_h2h_rows(h2h_data: H2HData) -> List[H2HRow]:
         row.expected_rank = i + 1
 
     return sorted(sorted_by_points, key=lambda x: x.h2h_rank)
+
+
+def requires_reload(overview: Overview, created_at_str: str) -> bool:
+    created_at = datetime.datetime.fromisoformat(created_at_str).replace(tzinfo=None)
+    print(f"created at: {created_at}")
+    print(f"gameweek deadline: {overview.latest_gameweek_deadline}")
+    return created_at < overview.latest_gameweek_deadline

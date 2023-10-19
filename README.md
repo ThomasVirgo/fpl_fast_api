@@ -1,1 +1,3 @@
 - [ ] Recalculate and store stats if a new gameweek has been played since the last calculation
+- [ ] Create a Navigation bar
+- [ ] Create a MakeFile to run server

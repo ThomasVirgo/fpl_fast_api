@@ -4,11 +4,11 @@ from fastapi import FastAPI, Request, Form
 
 from fastapi.templating import Jinja2Templates
 
-from fpl.data_loading import create_fpl_data, create_h2h_data
+from fpl.data_loading import create_fpl_data, create_h2h_data, get_overview
 from fpl.logic import FplWrapped
-from fpl.utils import H2HRow, extract_h2h_rows
+from fpl.utils import H2HRow, extract_h2h_rows, requires_reload
 from fpl.db.client import get_supabase_client
-from fpl.db.query import get_managers_with_name
+from fpl.db.query import get_latest_h2h_stats_for_league, get_managers_with_name
 
 app = FastAPI()
 
@@ -67,25 +67,24 @@ def search(request: Request, name: str = Form(...)):
 @app.get("/h2h/{league_id}")
 def h2h(request: Request, league_id: int):
     supabase = get_supabase_client()
-    latest_stats_for_league = (
-        supabase.table("h2h")
-        .select("stats")
-        .eq("league_id", league_id)
-        .order("created_at", desc=True)
-        .limit(1)
-        .execute()
-    )
-    try:
-        rows = [H2HRow(**row) for row in latest_stats_for_league.data[0]["stats"]]
-    except:
+    latest_stats_for_league = get_latest_h2h_stats_for_league(supabase, league_id)
+    needs_reload = True
+
+    if latest_stats_for_league:
+        created_at = latest_stats_for_league["created_at"]
+        overview = get_overview()
+        needs_reload = requires_reload(overview, created_at)
+
+    if needs_reload:
         h2h_data = create_h2h_data(league_id)
         rows = extract_h2h_rows(h2h_data)
+        supabase.table("h2h").insert(
+            {"league_id": league_id, "stats": [asdict(x) for x in rows]}
+        ).execute()
+    else:
+        rows = [H2HRow(**row) for row in latest_stats_for_league["stats"]]
 
-    # data, count = (
-    #     supabase.table("h2h")
-    #     .insert({"league_id": league_id, "stats": [asdict(x) for x in rows]})
-    #     .execute()
-    # )
+    print(f"needs reload: {needs_reload}")
     return templates.TemplateResponse(
         "h2h.html", context={"request": request, "rows": rows}
     )

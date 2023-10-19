@@ -1,3 +1,4 @@
+from datetime import datetime
 from dataclasses import dataclass
 from typing import Union, Dict, Optional
 from pydantic import BaseModel
@@ -87,6 +88,20 @@ class Overview(BaseModel):
             for player in self.elements
         }
 
+    @property
+    def latest_gameweek(self) -> int:
+        finished_gameweeks = [event.id for event in self.events if event.finished]
+        return max(finished_gameweeks)
+
+    @property
+    def latest_gameweek_deadline(self) -> datetime:
+        gw = self.latest_gameweek
+        for event in self.events:
+            if gw == event.id:
+                date_format = "%Y-%m-%dT%H:%M:%SZ"
+                return datetime.strptime(event.deadline_time, date_format)
+        return datetime.max
+
 
 # ------------------------- MANAGER PICKS --------------------------------
 # https://fantasy.premierleague.com/api/entry/{manager_id}/event/{event_id}/picks/
@@ -123,6 +138,9 @@ class PickExtended:
     is_vice_captain: bool
     points: int
     name: str
+
+    def is_bench(self) -> bool:
+        return self.position in {12, 13, 14, 15}
 
 
 class ManagerPicks(BaseModel):

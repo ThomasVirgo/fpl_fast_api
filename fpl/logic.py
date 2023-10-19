@@ -17,7 +17,11 @@ class CaptaincyScore:
 
 @dataclass(frozen=True)
 class BenchScore:
-    pass
+    gameweek: int
+    best_player_on_bench: int
+    best_player_on_bench_points: int
+    equivalent_position_points: int
+    points_lost: int
 
 
 class FplWrapped:
