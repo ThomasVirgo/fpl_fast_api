@@ -1,4 +1,5 @@
 fastapi[all]
 requests
+responses
 supabase
 pytest
